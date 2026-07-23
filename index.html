@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student diary</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board:#FFE4EE; --board-2:#FFFFFF; --chalk:#4A1D33; --dust:#B5728F;
+    --amber:#E8447F; --on-accent:#FFFFFF; --blue:#1FAE9B; --danger:#D64550;
+    --border-subtle:rgba(74,29,51,0.08); --border:rgba(74,29,51,0.15); --border-strong:rgba(74,29,51,0.25);
+    --accent-tint:rgba(232,68,127,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--board);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;transition:background-color 0.25s ease,color 0.25s ease;}
+  .wrap{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+  header{margin-bottom:20px;border-bottom:1px solid var(--border-subtle);padding-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amber);letter-spacing:1px;text-transform:uppercase;}
+  .title{font-family:'Zilla Slab',serif;font-weight:700;font-size:27px;margin:4px 0 0;}
+  .theme-picker{display:flex;gap:8px;align-items:center;padding-top:4px;}
+  .theme-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dust);text-transform:uppercase;letter-spacing:0.5px;margin-right:2px;}
+  .swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+  .swatch.active{border-color:var(--chalk);}
+  .tabs{display:flex;gap:2px;margin:18px 0;flex-wrap:wrap;}
+  .tabbtn{padding:9px 16px;font-size:13px;font-family:'IBM Plex Mono',monospace;cursor:pointer;background:var(--board-2);color:var(--dust);border:none;border-radius:6px 6px 0 0;}
+  .tabbtn.active{color:var(--chalk);border-bottom:2px solid var(--amber);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  textarea, input[type=text], input[type=password], input[type=time]{
+    width:100%;padding:9px 10px;border-radius:6px;border:1px solid var(--border);
+    background:var(--board-2);color:var(--chalk);font-family:'Inter',sans-serif;font-size:14px;
+  }
+  textarea{resize:vertical;min-height:110px;}
+  label{display:block;font-size:12px;color:var(--dust);margin:12px 0 5px;font-family:'IBM Plex Mono',monospace;}
+  button.primary{background:var(--amber);color:var(--on-accent);border:none;font-weight:600;font-size:14px;padding:9px 16px;border-radius:6px;cursor:pointer;}
+  button.ghost{background:none;border:1px solid var(--border-strong);color:var(--chalk);padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;}
+  button.icon{background:none;border:none;color:var(--dust);cursor:pointer;font-size:13px;}
+  button.icon:hover{color:var(--chalk);}
+
+  .entry{background:var(--board-2);border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--blue);}
+  .entry.private{border-left-color:var(--amber);}
+  .entry-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dust);margin-bottom:6px;}
+  .entry-text{font-size:14px;line-height:1.6;white-space:pre-wrap;}
+  .entry-actions{margin-top:8px;display:flex;gap:12px;}
+
+  .lock-screen{text-align:center;padding:50px 20px;}
+  .lock-icon{font-size:32px;margin-bottom:14px;}
+  .lock-screen input{max-width:260px;margin:0 auto 10px;}
+  .lock-msg{color:var(--dust);font-size:13px;margin-bottom:16px;}
+  .error-msg{color:var(--danger);font-size:13px;margin-top:8px;}
+
+  .alarm-row{display:flex;align-items:center;gap:12px;background:var(--board-2);border-radius:8px;padding:10px 14px;margin-bottom:8px;}
+  .alarm-time{font-family:'IBM Plex Mono',monospace;font-size:16px;min-width:70px;}
+  .alarm-label{flex:1;font-size:13px;color:var(--dust);}
+  .alarm-toggle{width:16px;height:16px;}
+  .add-alarm{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .add-alarm input[type=time]{max-width:120px;}
+  .add-alarm input[type=text]{flex:1;min-width:140px;}
+
+  .io-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .save-hint{font-size:11px;color:var(--dust);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+  .notif-banner{background:var(--accent-tint);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;}
+
+  .overlay{position:fixed;inset:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:24px;z-index:2;}
+  #spaceCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:1;display:none;}
+  .onboard-card{max-width:420px;width:100%;text-align:center;background:rgba(10,12,28,0.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:36px 30px;color:#F2EFFA;}
+  .onboard-emoji{font-size:56px;margin-bottom:20px;}
+  .onboard-title{font-family:'Zilla Slab',serif;font-weight:700;font-size:26px;margin:0 0 12px;color:#FFFFFF;}
+  .onboard-text{color:#C9C6DE;font-size:15px;line-height:1.6;margin-bottom:30px;}
+  .dots{display:flex;gap:8px;justify-content:center;margin-bottom:28px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;border:none;padding:0;}
+  .dot.active{background:var(--amber);width:22px;border-radius:4px;}
+  .onboard-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .skip-link{background:none;border:none;color:#B7B3CE;font-size:13px;cursor:pointer;}
+  .cta-btn{background:var(--amber);color:var(--on-accent);border:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:8px;cursor:pointer;}
+  .cta-final{font-size:17px;padding:16px 40px;box-shadow:0 0 0 0 var(--amber);animation:pulse 1.8s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 var(--accent-tint);}
+    70%{box-shadow:0 0 0 14px rgba(0,0,0,0);}
+    100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}
+  }
+
+  .auth-card{max-width:360px;width:100%;background:rgba(10,12,28,0.6);backdrop-filter:blur(6px);border-radius:14px;padding:28px 26px;border:1px solid rgba(255,255,255,0.12);color:#F2EFFA;}
+  .auth-tabs{display:flex;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.15);}
+  .authTab{flex:1;background:none;border:none;padding:10px;font-size:14px;color:#B7B3CE;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+  .authTab.active{color:#FFFFFF;border-bottom:2px solid var(--amber);}
+  .auth-title{font-family:'Zilla Slab',serif;font-size:20px;font-weight:700;margin:0 0 4px;text-align:center;color:#FFFFFF;}
+  .auth-sub{color:#B7B3CE;font-size:12.5px;text-align:center;margin-bottom:18px;}
+  .auth-card label{color:#B7B3CE;}
+  .auth-card input{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#FFFFFF;}
+  .logout-btn{font-size:12px;color:var(--dust);background:none;border:1px solid var(--border-strong);border-radius:6px;padding:6px 12px;cursor:pointer;}
+  .user-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dust);margin-bottom:4px;}
+</style>
+</head>
+<body>
+<canvas id="spaceCanvas"></canvas>
+
+<div class="overlay" id="onboardingScreen" style="display:none;">
+  <div class="onboard-card" id="onboardCardInner"></div>
+</div>
+
+<div class="overlay" id="authScreen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="authTab" data-mode="login">Log in</button>
+      <button class="authTab" data-mode="signup">Sign up</button>
+    </div>
+    <div id="authForm"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appMain" style="display:none;">
+  <header>
+    <div>
+      <div class="user-badge" id="userBadge"></div>
+      <div class="eyebrow">Personal diary</div>
+      <h1 class="title">My diary</h1>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+      <div id="themePickerWrap" style="display:flex;flex-direction:column;align-items:flex-end;flex-wrap:wrap;gap:0;">
+        <div class="theme-picker" id="themePicker">
+          <span class="theme-label">Theme</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="diary">Diary</button>
+    <button class="tabbtn" data-tab="private">Private notes</button>
+    <button class="tabbtn" data-tab="alarms">Alarms</button>
+    <button class="tabbtn" data-tab="data">Import / export</button>
+  </div>
+
+  <div class="panel active" id="panel-diary">
+    <label>New entry</label>
+    <textarea id="diaryInput" placeholder="How did today go? What did you study, what's on your mind..."></textarea>
+    <div class="io-row"><button class="primary" id="addEntryBtn">Add entry</button></div>
+    <div id="diaryList" style="margin-top:20px;"></div>
+  </div>
+
+  <div class="panel" id="panel-private">
+    <div id="lockedView"></div>
+    <div id="unlockedView" style="display:none;">
+      <div class="io-row" style="margin-bottom:14px;">
+        <button class="ghost" id="lockBtn">Lock now</button>
+      </div>
+      <label>New private note</label>
+      <textarea id="privateInput" placeholder="Anything you want kept just for you..."></textarea>
+      <div class="io-row"><button class="primary" id="addPrivateBtn">Add private note</button></div>
+      <div id="privateList" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-alarms">
+    <div class="notif-banner" id="notifBanner">Alarms ring only while this page stays open in your browser — they can't wake your device or notify you if the tab is closed.</div>
+    <div id="alarmList"></div>
+    <div class="add-alarm">
+      <input type="time" id="alarmTime">
+      <input type="text" id="alarmLabel" placeholder="Label, e.g. Revise Chemistry">
+      <button class="primary" id="addAlarmBtn">Add alarm</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-data">
+    <p style="color:var(--dust);font-size:13px;">Export everything (diary entries, alarms, and your encrypted private notes) as a backup file. Private notes stay encrypted in the export — importing them still needs your password to unlock.</p>
+    <div class="io-row">
+      <button class="primary" id="exportBtn">Export backup</button>
+      <label class="ghost" style="display:inline-flex;align-items:center;cursor:pointer;">
+        Import backup
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+      </label>
+    </div>
+    <div class="save-hint" id="importStatus"></div>
+  </div>
+</div>
+
+<script>
+const ACCOUNTS_KEY = 'diary-accounts';
+const LAST_USER_KEY = 'diary-last-user';
+const ONBOARDED_KEY = 'diary-onboarded';
+let currentUser = null;
+let CURRENT_KEY = null;
+let data = {
+  diaryEntries: [],
+  alarms: [],
+  vault: null,
+  theme: '330'
+};
+let vaultKey = null;
+let vaultNotes = [];
+const triggeredToday = {};
+
+function dataKeyFor(user){ return 'student-diary-data-' + user; }
+function getAccounts(){ try{ return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || {}; }catch(e){ return {}; } }
+function saveAccounts(acc){ localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(acc)); }
+
+async function hashPassword(password, saltB64){
+  const enc = new TextEncoder();
+  const salt = b64ToBuf(saltB64);
+  const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'}, baseKey, 256);
+  return bufToB64(bits);
+}
+
+const SLIDES = [
+  { emoji:'📝', title:'Write your story', text:'Keep a running diary of your days — thoughts, wins, things worth remembering.' },
+  { emoji:'🔐', title:'Some things stay private', text:'Lock personal notes behind a password with real encryption, not just a hidden tab.' },
+  { emoji:'⏰', title:'Never miss a revision', text:'Set alarms for study sessions and reminders, right inside the app.' },
+  { emoji:'🎨', title:'Make it yours', text:'Pick a color theme that feels like you — pink, ocean, mint, lavender, and more.' }
+];
+let slideIndex = 0;
+
+function renderSlide(i){
+  slideIndex = i;
+  const s = SLIDES[i];
+  const isLast = i === SLIDES.length - 1;
+  const dots = SLIDES.map((_, idx) => `<button class="dot${idx===i?' active':''}" data-idx="${idx}"></button>`).join('');
+  const card = document.getElementById('onboardCardInner');
+  card.innerHTML = `
+    <div class="onboard-emoji">${s.emoji}</div>
+    <h2 class="onboard-title">${s.title}</h2>
+    <p class="onboard-text">${s.text}</p>
+    <div class="dots">${dots}</div>
+    <div class="onboard-actions">
+      ${isLast ? '<span></span>' : '<button class="skip-link" id="skipBtn">Skip</button>'}
+      <button class="cta-btn${isLast ? ' cta-final' : ''}" id="nextBtn">${isLast ? 'Get started' : 'Next'}</button>
+    </div>
+  `;
+  card.querySelectorAll('.dot').forEach(d => d.onclick = () => renderSlide(parseInt(d.dataset.idx)));
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.onclick = () => { isLast ? proceedPastOnboarding() : renderSlide(i + 1); };
+  const skipBtn = document.getElementById('skipBtn');
+  if(skipBtn) skipBtn.onclick = proceedPastOnboarding;
+}
+
+function showOnboarding(){
+  document.getElementById('onboardingScreen').style.display = 'flex';
+  startSpace();
+  renderSlide(0);
+}
+
+function proceedPastOnboarding(){
+  localStorage.setItem(ONBOARDED_KEY, '1');
+  document.getElementById('onboardingScreen').style.display = 'none';
+  const lastUser = localStorage.getItem(LAST_USER_KEY);
+  const accounts = getAccounts();
+  if(lastUser && accounts[lastUser]){
+    enterApp(lastUser);
+  } else {
+    showAuth(Object.keys(accounts).length ? 'login' : 'signup');
+  }
+}
+
+function showAuth(mode){
+  document.getElementById('authScreen').style.display = 'flex';
+  startSpace();
+  setAuthMode(mode);
+}
+
+function setAuthMode(mode){
+  document.querySelectorAll('.authTab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  const form = document.getElementById('authForm');
+  if(mode === 'login'){
+    form.innerHTML = `
+      <p class="auth-title">Welcome back</p>
+      <p class="auth-sub">Log in to your diary.</p>
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Your username">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Your password">
+      <div class="io-row" style="justify-content:center;"><button class="primary" id="loginBtn" style="width:100%;">Log in</button></div>
+      <div class="error-msg" id="loginErr"></div>
+    `;
+    const doLogin = async () => {
+      const username = document.getElementById('loginUser').value.trim().toLowerCase();
+      const pass = document.getElementById('loginPass').value;
+      const err = document.getElementById('loginErr');
+      const accounts = getAccounts();
+      const acc = accounts[username];
+      if(!acc){ err.textContent = 'No account with that username.'; return; }
+      const hash = await hashPassword(pass, acc.salt);
+      if(hash !== acc.hash){ err.textContent = 'Incorrect username or password.'; return; }
+      enterApp(username);
+    };
+    document.getElementById('loginBtn').onclick = doLogin;
+    document.getElementById('loginPass').addEventListener('keydown', ev => { if(ev.key === 'Enter') doLogin(); });
+  } else {
+    form.innerHTML = `
+      <p class="auth-title">Create your diary</p>
+      <p class="auth-sub">New here? Set up your account.</p>
+      <label>Choose a username</label>
+      <input type="text" id="signupUser" placeholder="Username">
+      <label>Choose a password</label>
+      <input type="password" id="signupPass" placeholder="Password">
+      <label>Confirm password</label>
+      <input type="password" id="signupPass2" placeholder="Confirm password">
+      <div class="io-row" style="justify-content:center;"><button class="primary" id="signupBtn" style="width:100%;">Create account</button></div>
+      <div class="error-msg" id="signupErr"></div>
+    `;
+    document.getElementById('signupBtn').onclick = async () => {
+      const username = document.getElementById('signupUser').value.trim().toLowerCase();
+      const pass = document.getElementById('signupPass').value;
+      const pass2 = document.getElementById('signupPass2').value;
+      const err = document.getElementById('signupErr');
+      if(!username || username.length < 3){ err.textContent = 'Username must be at least 3 characters.'; return; }
+      if(!pass || pass.length < 4){ err.textContent = 'Password must be at least 4 characters.'; return; }
+      if(pass !== pass2){ err.textContent = "Passwords don't match."; return; }
+      const accounts = getAccounts();
+      if(accounts[username]){ err.textContent = 'That username is already taken.'; return; }
+      const salt = bufToB64(crypto.getRandomValues(new Uint8Array(16)));
+      const hash = await hashPassword(pass, salt);
+      accounts[username] = { salt, hash };
+      saveAccounts(accounts);
+      enterApp(username);
+    };
+  }
+}
+
+document.querySelectorAll('.authTab').forEach(tab => {
+  tab.onclick = () => setAuthMode(tab.dataset.mode);
+});
+
+function enterApp(username){
+  currentUser = username;
+  CURRENT_KEY = dataKeyFor(username);
+  localStorage.setItem(LAST_USER_KEY, username);
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('onboardingScreen').style.display = 'none';
+  document.getElementById('appMain').style.display = 'block';
+  document.getElementById('userBadge').textContent = username;
+  stopSpace();
+  loadUserData();
+}
+
+document.getElementById('logoutBtn').onclick = () => {
+  currentUser = null;
+  CURRENT_KEY = null;
+  localStorage.removeItem(LAST_USER_KEY);
+  document.getElementById('appMain').style.display = 'none';
+  showAuth('login');
+};
+
+const canvas = document.getElementById('spaceCanvas');
+const ctx2d = canvas.getContext('2d');
+let spaceRunning = false;
+let rocks = [];
+let duneSeeds = [];
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function initDesert(){
+  rocks = [];
+  const w = window.innerWidth;
+  const count = 4 + Math.floor(w / 400);
+  for(let i = 0; i < count; i++){
+    rocks.push({
+      x: Math.random() * w,
+      s: 6 + Math.random() * 10
+    });
+  }
+  duneSeeds = [Math.random() * 10, Math.random() * 10, Math.random() * 10];
+}
+
+function drawDuneLayer(baseY, amp, color, seed, w, h){
+  ctx2d.fillStyle = color;
+  ctx2d.beginPath();
+  ctx2d.moveTo(0, h);
+  ctx2d.lineTo(0, baseY);
+  for(let x = 0; x <= w; x += 20){
+    const y = baseY - Math.sin(x * 0.004 + seed) * amp - Math.sin(x * 0.011 + seed * 2) * (amp * 0.4);
+    ctx2d.lineTo(x, y);
+  }
+  ctx2d.lineTo(w, h);
+  ctx2d.closePath();
+  ctx2d.fill();
+}
+
+function drawSpace(rawTime){
+  if(!spaceRunning) return;
+  const time = rawTime / 1000;
+  const w = canvas.width, h = canvas.height;
+  const groundY = h * 0.6;
+
+  const sky = ctx2d.createLinearGradient(0, 0, 0, groundY);
+  sky.addColorStop(0, '#3A2417');
+  sky.addColorStop(0.4, '#9C4E2C');
+  sky.addColorStop(0.72, '#E08A3E');
+  sky.addColorStop(1, '#F8CD82');
+  ctx2d.fillStyle = sky;
+  ctx2d.fillRect(0, 0, w, groundY);
+
+  const sunX = w * 0.76, sunY = groundY * 0.62, sunR = 52;
+  const sunGlow = ctx2d.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 3.2);
+  sunGlow.addColorStop(0, 'rgba(255,224,160,0.85)');
+  sunGlow.addColorStop(1, 'rgba(255,224,160,0)');
+  ctx2d.fillStyle = sunGlow;
+  ctx2d.beginPath(); ctx2d.arc(sunX, sunY, sunR * 3.2, 0, Math.PI * 2); ctx2d.fill();
+  ctx2d.fillStyle = '#FFE7B0';
+  ctx2d.beginPath(); ctx2d.arc(sunX, sunY, sunR, 0, Math.PI * 2); ctx2d.fill();
+
+  if(duneSeeds.length){
+    drawDuneLayer(groundY + 10, 26, '#E7B978', duneSeeds[0], w, h);
+    drawDuneLayer(groundY + 45, 34, '#D9A05C', duneSeeds[1], w, h);
+    drawDuneLayer(groundY + 85, 42, '#C4874A', duneSeeds[2], w, h);
+  }
+
+  ctx2d.strokeStyle = 'rgba(90,50,20,0.12)';
+  ctx2d.lineWidth = 1;
+  for(let i = 0; i < 5; i++){
+    ctx2d.beginPath();
+    const y0 = groundY + 100 + i * 22;
+    ctx2d.moveTo(0, y0);
+    for(let x = 0; x <= w; x += 30){
+      ctx2d.lineTo(x, y0 + Math.sin(x * 0.02 + i * 1.7) * 5);
+    }
+    ctx2d.stroke();
+  }
+
+  ctx2d.fillStyle = 'rgba(80,45,20,0.35)';
+  rocks.forEach(r => {
+    const ry = h - 14;
+    ctx2d.beginPath();
+    ctx2d.ellipse(r.x, ry, r.s, r.s * 0.55, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+  });
+
+  const dir = Math.cos(time * 0.15) >= 0 ? 1 : -1;
+  const headX = w / 2 + Math.sin(time * 0.15) * (w * 0.36);
+  const bodyBaseY = h - 60;
+  const numSeg = 22;
+  const spacing = 13;
+  const amp = 20;
+
+  const points = [];
+  for(let i = 0; i < numSeg; i++){
+    const segX = headX - dir * i * spacing;
+    const segY = bodyBaseY + Math.sin(segX * 0.045 + time * 4) * amp;
+    points.push({ x: segX, y: segY, t: i / numSeg });
+  }
+
+  for(let i = numSeg - 1; i >= 0; i--){
+    const p = points[i];
+    const size = 12.5 * (1 - p.t * 0.6);
+    ctx2d.fillStyle = '#C7A468';
+    ctx2d.beginPath();
+    ctx2d.ellipse(p.x, p.y, size, size * 0.72, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+  }
+
+  for(let i = numSeg - 2; i >= 2; i -= 2){
+    const p = points[i];
+    const size = 12.5 * (1 - p.t * 0.6);
+    ctx2d.fillStyle = i % 4 === 0 ? '#5B3A1E' : '#7A4E28';
+    ctx2d.save();
+    ctx2d.translate(p.x, p.y);
+    ctx2d.rotate(dir * 0.05);
+    ctx2d.beginPath();
+    ctx2d.moveTo(0, -size * 0.75);
+    ctx2d.lineTo(size * 0.7, 0);
+    ctx2d.lineTo(0, size * 0.75);
+    ctx2d.lineTo(-size * 0.7, 0);
+    ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.restore();
+  }
+
+  const tailBase = points[numSeg - 1];
+  let rx = tailBase.x - dir * 10, ry2 = tailBase.y;
+  const shake = Math.sin(time * 45) * 3;
+  for(let i = 0; i < 4; i++){
+    const s = 6 - i * 1.1;
+    ctx2d.fillStyle = i % 2 === 0 ? '#D8C39A' : '#B7A17A';
+    ctx2d.beginPath();
+    ctx2d.ellipse(rx - dir * i * 6, ry2 + shake * (i * 0.3), s, s * 0.7, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+  }
+
+  const head = points[0];
+  const neckSize = 12.5;
+  ctx2d.save();
+  ctx2d.translate(head.x, head.y);
+  const nx = points[1] ? head.x - points[1].x : dir;
+  const ny = points[1] ? head.y - points[1].y : 0;
+  const ang = Math.atan2(ny, nx);
+  ctx2d.rotate(ang);
+  ctx2d.fillStyle = '#C7A468';
+  ctx2d.beginPath();
+  ctx2d.moveTo(neckSize * 1.9, 0);
+  ctx2d.lineTo(neckSize * 0.2, -neckSize * 1.1);
+  ctx2d.lineTo(-neckSize * 0.9, -neckSize * 0.55);
+  ctx2d.lineTo(-neckSize * 0.9, neckSize * 0.55);
+  ctx2d.lineTo(neckSize * 0.2, neckSize * 1.1);
+  ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.fillStyle = '#5B3A1E';
+  ctx2d.beginPath();
+  ctx2d.moveTo(neckSize * 1.9, 0);
+  ctx2d.lineTo(neckSize * 0.5, -neckSize * 0.5);
+  ctx2d.lineTo(-neckSize * 0.2, 0);
+  ctx2d.lineTo(neckSize * 0.5, neckSize * 0.5);
+  ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.fillStyle = '#1A1410';
+  ctx2d.beginPath(); ctx2d.ellipse(neckSize * 0.15, -neckSize * 0.4, 2, 3, 0, 0, Math.PI * 2); ctx2d.fill();
+  ctx2d.beginPath(); ctx2d.ellipse(neckSize * 0.15, neckSize * 0.4, 2, 3, 0, 0, Math.PI * 2); ctx2d.fill();
+  if(Math.sin(time * 3) > 0.6){
+    ctx2d.strokeStyle = '#B94A3D';
+    ctx2d.lineWidth = 1.3;
+    ctx2d.beginPath();
+    ctx2d.moveTo(neckSize * 1.9, 0);
+    ctx2d.lineTo(neckSize * 2.9, -2.5);
+    ctx2d.moveTo(neckSize * 1.9, 0);
+    ctx2d.lineTo(neckSize * 2.9, 2.5);
+    ctx2d.stroke();
+  }
+  ctx2d.restore();
+
+  requestAnimationFrame(drawSpace);
+}
+
+function startSpace(){
+  if(spaceRunning) return;
+  spaceRunning = true;
+  canvas.style.display = 'block';
+  resizeCanvas();
+  initDesert();
+  requestAnimationFrame(drawSpace);
+}
+function stopSpace(){
+  spaceRunning = false;
+  canvas.style.display = 'none';
+}
+function initApp(){
+  if(localStorage.getItem(ONBOARDED_KEY)){
+    proceedPastOnboarding();
+  } else {
+    showOnboarding();
+  }
+}
+
+const THEMES = {
+  midnight: { board:'#1B2A2E', board2:'#22343A', chalk:'#EAE6DA', dust:'#8FA6A3', amber:'#E8A33D', onAccent:'#2C1F0C', blue:'#5B8DBE', danger:'#C97064',
+    borderSubtle:'rgba(234,230,218,0.08)', border:'rgba(234,230,218,0.15)', borderStrong:'rgba(234,230,218,0.3)', accentTint:'rgba(232,163,61,0.15)' }
+};
+
+function themeFromHue(hue){
+  return {
+    board: `hsl(${hue},65%,93%)`,
+    board2: `hsl(${hue},45%,99%)`,
+    chalk: `hsl(${hue},45%,18%)`,
+    dust: `hsl(${hue},25%,52%)`,
+    amber: `hsl(${hue},70%,50%)`,
+    onAccent: '#FFFFFF',
+    blue: `hsl(${(hue+150)%360},55%,48%)`,
+    danger: 'hsl(355,70%,50%)',
+    borderSubtle: `hsla(${hue},40%,20%,0.08)`,
+    border: `hsla(${hue},40%,20%,0.15)`,
+    borderStrong: `hsla(${hue},40%,20%,0.25)`,
+    accentTint: `hsla(${hue},70%,50%,0.12)`
+  };
+}
+function resolveTheme(value){
+  if(value === 'midnight') return THEMES.midnight;
+  const hue = parseFloat(value);
+  return themeFromHue(isNaN(hue) ? 330 : hue);
+}
+
+let currentAccentColor = 'hsl(330,70%,50%)';
+let currentSecondaryColor = 'hsl(120,55%,48%)';
+
+function applyTheme(value){
+  const t = resolveTheme(value);
+  const root = document.documentElement.style;
+  root.setProperty('--board', t.board);
+  root.setProperty('--board-2', t.board2);
+  root.setProperty('--chalk', t.chalk);
+  root.setProperty('--dust', t.dust);
+  root.setProperty('--amber', t.amber);
+  root.setProperty('--on-accent', t.onAccent);
+  root.setProperty('--blue', t.blue);
+  root.setProperty('--danger', t.danger);
+  root.setProperty('--border-subtle', t.borderSubtle);
+  root.setProperty('--border', t.border);
+  root.setProperty('--border-strong', t.borderStrong);
+  root.setProperty('--accent-tint', t.accentTint);
+  currentAccentColor = t.amber;
+  currentSecondaryColor = t.blue;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.theme === String(value)));
+}
+
+const QUICK_HUES = [330, 205, 150, 265, 25, 285, 175, 10, 45, 235];
+
+function renderThemePicker(){
+  const picker = document.getElementById('themePicker');
+  picker.innerHTML = '<span class="theme-label">Theme</span>';
+
+  const midBtn = document.createElement('button');
+  midBtn.className = 'swatch' + (data.theme === 'midnight' ? ' active' : '');
+  midBtn.dataset.theme = 'midnight';
+  midBtn.style.background = '#1B2A2E';
+  midBtn.title = 'Midnight';
+  midBtn.onclick = () => { data.theme = 'midnight'; applyTheme('midnight'); save(); };
+  picker.appendChild(midBtn);
+
+  QUICK_HUES.forEach(hue => {
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (data.theme === String(hue) ? ' active' : '');
+    btn.dataset.theme = String(hue);
+    btn.style.background = `hsl(${hue},70%,50%)`;
+    btn.title = `Hue ${hue}`;
+    btn.onclick = () => { data.theme = String(hue); applyTheme(hue); save(); };
+    picker.appendChild(btn);
+  });
+
+  const moreBtn = document.createElement('button');
+  moreBtn.className = 'ghost';
+  moreBtn.style.cssText = 'padding:4px 10px;font-size:11px;border-radius:6px;';
+  moreBtn.textContent = 'More colors';
+  moreBtn.onclick = () => {
+    const grid = document.getElementById('colorGrid');
+    grid.style.display = grid.style.display === 'flex' ? 'none' : 'flex';
+  };
+  picker.appendChild(moreBtn);
+
+  let grid = document.getElementById('colorGrid');
+  if(!grid){
+    grid = document.createElement('div');
+    grid.id = 'colorGrid';
+    grid.style.cssText = 'display:none;flex-wrap:wrap;gap:6px;max-width:820px;max-height:150px;overflow-y:auto;padding:12px;background:var(--board-2);border-radius:10px;border:1px solid var(--border);margin-top:10px;width:100%;';
+    for(let hue = 0; hue < 360; hue += 3){
+      const dot = document.createElement('button');
+      dot.className = 'swatch';
+      dot.style.width = '18px';
+      dot.style.height = '18px';
+      dot.dataset.theme = String(hue);
+      dot.style.background = `hsl(${hue},70%,50%)`;
+      dot.onclick = () => { data.theme = String(hue); applyTheme(hue); save(); };
+      grid.appendChild(dot);
+    }
+    document.getElementById('themePickerWrap').appendChild(grid);
+  }
+}
+
+async function loadUserData(){
+  try{
+    const res = await Promise.resolve(localStorage.getItem(CURRENT_KEY));
+    if(res) data = JSON.parse(res);
+    else data = { diaryEntries: [], alarms: [], vault: null, theme: '330' };
+  }catch(e){}
+  if(!data.theme) data.theme = '330';
+  renderThemePicker();
+  applyTheme(data.theme);
+  renderDiary();
+  renderAlarms();
+  renderPrivateGate();
+}
+async function save(){
+  try{ localStorage.setItem(CURRENT_KEY, JSON.stringify(data)); }catch(e){ console.error(e); }
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function fmtDate(ts){ return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function bufToB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b64ToBuf(b64){ const bin = atob(b64); const arr = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i); return arr.buffer; }
+
+async function deriveKey(password, saltB64){
+  const enc = new TextEncoder();
+  const salt = b64ToBuf(saltB64);
+  const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:150000, hash:'SHA-256' },
+    baseKey, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+
+async function encryptNotes(notes, key){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(notes)));
+  return { iv: bufToB64(iv), ciphertext: bufToB64(ciphertext) };
+}
+async function decryptVault(vault, key){
+  const dec = new TextDecoder();
+  const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64ToBuf(vault.iv)}, key, b64ToBuf(vault.ciphertext));
+  return JSON.parse(dec.decode(plain));
+}
+
+function renderDiary(){
+  const list = document.getElementById('diaryList');
+  list.innerHTML = '';
+  [...data.diaryEntries].reverse().forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <div class="entry-date">${fmtDate(e.ts)}</div>
+      <div class="entry-text">${escapeHtml(e.text)}</div>
+      <div class="entry-actions"><button class="icon delBtn" data-id="${e.id}">Delete</button></div>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.delBtn').forEach(b => {
+    b.onclick = () => { data.diaryEntries = data.diaryEntries.filter(x => x.id !== b.dataset.id); save(); renderDiary(); };
+  });
+}
+
+document.getElementById('addEntryBtn').onclick = () => {
+  const ta = document.getElementById('diaryInput');
+  const text = ta.value.trim();
+  if(!text) return;
+  data.diaryEntries.push({ id: Date.now().toString(36), ts: Date.now(), text });
+  ta.value = '';
+  save(); renderDiary();
+};
+
+function renderPrivateGate(){
+  const locked = document.getElementById('lockedView');
+  const unlocked = document.getElementById('unlockedView');
+  unlocked.style.display = 'none';
+  vaultKey = null;
+  vaultNotes = [];
+
+  if(!data.vault){
+    locked.innerHTML = `
+      <div class="lock-screen">
+        <div class="lock-icon">🔒</div>
+        <p class="lock-msg">Set a password to protect this section. There's no way to recover it if you forget it, so keep it somewhere safe.</p>
+        <input type="password" id="setPass1" placeholder="Choose a password">
+        <input type="password" id="setPass2" placeholder="Confirm password">
+        <div class="io-row" style="justify-content:center;"><button class="primary" id="setPassBtn">Set password</button></div>
+        <div class="error-msg" id="setPassErr"></div>
+      </div>`;
+    document.getElementById('setPassBtn').onclick = async () => {
+      const p1 = document.getElementById('setPass1').value;
+      const p2 = document.getElementById('setPass2').value;
+      const err = document.getElementById('setPassErr');
+      if(!p1 || p1.length < 4){ err.textContent = 'Use at least 4 characters.'; return; }
+      if(p1 !== p2){ err.textContent = "Passwords don't match."; return; }
+      const salt = bufToB64(crypto.getRandomValues(new Uint8Array(16)));
+      const key = await deriveKey(p1, salt);
+      const enc = await encryptNotes([], key);
+      data.vault = { salt, iv: enc.iv, ciphertext: enc.ciphertext };
+      await save();
+      vaultKey = key;
+      vaultNotes = [];
+      showUnlocked();
+    };
+  } else {
+    locked.innerHTML = `
+      <div class="lock-screen">
+        <div class="lock-icon">🔒</div>
+        <p class="lock-msg">Enter your password to unlock private notes.</p>
+        <input type="password" id="unlockPass" placeholder="Password">
+        <div class="io-row" style="justify-content:center;"><button class="primary" id="unlockBtn">Unlock</button></div>
+        <div class="error-msg" id="unlockErr"></div>
+      </div>`;
+    const tryUnlock = async () => {
+      const pass = document.getElementById('unlockPass').value;
+      const err = document.getElementById('unlockErr');
+      try{
+        const key = await deriveKey(pass, data.vault.salt);
+        const notes = await decryptVault(data.vault, key);
+        vaultKey = key;
+        vaultNotes = notes;
+        showUnlocked();
+      }catch(e){
+        err.textContent = 'Wrong password.';
+      }
+    };
+    document.getElementById('unlockBtn').onclick = tryUnlock;
+    document.getElementById('unlockPass').addEventListener('keydown', ev => { if(ev.key === 'Enter') tryUnlock(); });
+  }
+}
+
+function showUnlocked(){
+  document.getElementById('lockedView').innerHTML = '';
+  document.getElementById('unlockedView').style.display = 'block';
+  renderPrivateList();
+}
+
+function renderPrivateList(){
+  const list = document.getElementById('privateList');
+  list.innerHTML = '';
+  [...vaultNotes].reverse().forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'entry private';
+    div.innerHTML = `
+      <div class="entry-date">${fmtDate(n.ts)}</div>
+      <div class="entry-text">${escapeHtml(n.text)}</div>
+      <div class="entry-actions"><button class="icon delPriv" data-id="${n.id}">Delete</button></div>
+    `;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.delPriv').forEach(b => {
+    b.onclick = async () => {
+      vaultNotes = vaultNotes.filter(x => x.id !== b.dataset.id);
+      await persistVault();
+      renderPrivateList();
+    };
+  });
+}
+
+async function persistVault(){
+  const enc = await encryptNotes(vaultNotes, vaultKey);
+  data.vault.iv = enc.iv;
+  data.vault.ciphertext = enc.ciphertext;
+  await save();
+}
+
+document.getElementById('addPrivateBtn').onclick = async () => {
+  const ta = document.getElementById('privateInput');
+  const text = ta.value.trim();
+  if(!text) return;
+  vaultNotes.push({ id: Date.now().toString(36), ts: Date.now(), text });
+  ta.value = '';
+  await persistVault();
+  renderPrivateList();
+};
+
+document.getElementById('lockBtn').onclick = () => {
+  vaultKey = null;
+  vaultNotes = [];
+  renderPrivateGate();
+};
+
+function renderAlarms(){
+  const list = document.getElementById('alarmList');
+  list.innerHTML = '';
+  if(data.alarms.length === 0){
+    list.innerHTML = `<p style="color:var(--dust);font-size:13px;">No alarms yet. Add one below.</p>`;
+  }
+  data.alarms.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'alarm-row';
+    row.innerHTML = `
+      <input type="checkbox" class="alarm-toggle" data-id="${a.id}" ${a.enabled ? 'checked' : ''}>
+      <span class="alarm-time">${a.time}</span>
+      <span class="alarm-label">${escapeHtml(a.label || '')}</span>
+      <button class="icon delAlarm" data-id="${a.id}">Delete</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.alarm-toggle').forEach(cb => {
+    cb.onchange = () => {
+      const a = data.alarms.find(x => x.id === cb.dataset.id);
+      a.enabled = cb.checked;
+      save();
+    };
+  });
+  list.querySelectorAll('.delAlarm').forEach(b => {
+    b.onclick = () => { data.alarms = data.alarms.filter(x => x.id !== b.dataset.id); save(); renderAlarms(); };
+  });
+}
+
+document.getElementById('addAlarmBtn').onclick = () => {
+  const time = document.getElementById('alarmTime').value;
+  const label = document.getElementById('alarmLabel').value.trim();
+  if(!time) return;
+  data.alarms.push({ id: Date.now().toString(36), time, label, enabled: true });
+  document.getElementById('alarmTime').value = '';
+  document.getElementById('alarmLabel').value = '';
+  save(); renderAlarms();
+  if(window.Notification && Notification.permission === 'default'){
+    Notification.requestPermission();
+  }
+};
+
+function beep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    osc.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  }catch(e){}
+}
+
+setInterval(() => {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const current = `${hh}:${mm}`;
+  const dayKey = now.toDateString();
+  data.alarms.forEach(a => {
+    if(!a.enabled) return;
+    const fireKey = a.id + dayKey;
+    if(a.time === current && !triggeredToday[fireKey]){
+      triggeredToday[fireKey] = true;
+      beep();
+      if(window.Notification && Notification.permission === 'granted'){
+        new Notification('Diary reminder', { body: a.label || 'Alarm', });
+      }
+    }
+  });
+}, 15000);
+
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'diary-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const status = document.getElementById('importStatus');
+    try{
+      const imported = JSON.parse(ev.target.result);
+      if(!imported.diaryEntries || !imported.alarms){ throw new Error('bad format'); }
+      imported.theme = imported.theme || '330';
+      data = imported;
+      await save();
+      applyTheme(data.theme);
+      renderDiary(); renderAlarms(); renderPrivateGate();
+      status.textContent = 'Backup imported successfully.';
+    }catch(err){
+      status.textContent = "Couldn't read that file — make sure it's a backup exported from this app.";
+    }
+  };
+  reader.readAsText(file);
+};
+
+document.querySelectorAll('.tabbtn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  };
+});
+
+initApp();
+</script>
+</body>
+</html>
